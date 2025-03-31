@@ -7,14 +7,11 @@ from app.utils.openai_client import get_openai_response
 from app.utils.file_handler import save_upload_file_temporarily
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
+
+
+
 # Import the functions you want to test directly
 from app.utils.functions import *
-
-from dotenv import load_dotenv
-
-load_dotenv()
-PORT = os.getenv("PORT", 8000)
-
 
 uploads_dir = os.path.join(os.getcwd(), "uploads")
 if not os.path.exists(uploads_dir):
@@ -190,4 +187,4 @@ if __name__ == "__main__":
     import uvicorn
       
 
-    uvicorn.run("main:app", host="0.0.0.0", port=PORT, reload=True)
+    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
