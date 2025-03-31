@@ -119,6 +119,11 @@ async def get_students(class_: List[str] = Query(default=[], alias="class")):
         results = [student for student in results if student["class"] in class_]
     return {"students": results}
 
+@app.get("/welcome")
+def welcome():
+    return {"message": "Welcome to the FastAPI app!"}
+
+
 
 class SearchRequest(BaseModel):
     docs: List[str]
