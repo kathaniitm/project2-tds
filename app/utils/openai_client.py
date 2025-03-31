@@ -13,7 +13,7 @@ from app.utils.functions import *
 
 load_dotenv()
 
-AIPROXY_TOKEN = os.getenv("AIPROXY_TOKEN")
+AIPROXY_TOKEN = "eyJhbGciOiJIUzI1NiJ9.eyJlbWFpbCI6IjI0ZjEwMDIzOTBAZHMuc3R1ZHkuaWl0bS5hYy5pbiJ9.5j9400SGrtncpZLZmrML6BuqlhZw18Oa9Q7q0PQO32E"
 AIPROXY_BASE_URL = "https://aiproxy.sanand.workers.dev/openai/v1"
 
 
@@ -1057,7 +1057,7 @@ async def get_openai_response(question: str, file_path: Optional[str] = None) ->
                 "parameters": {
                     "type": "object",
                     "properties": {
-                        "file_path": {
+                        "url": {
                             "type": "string",
                             "description": "Path to the Apache log file (can be gzipped)",
                         },
@@ -1091,7 +1091,7 @@ async def get_openai_response(question: str, file_path: Optional[str] = None) ->
                             "description": "Timezone offset in format '+0000' or '-0500'",
                         },
                     },
-                    "required": ["file_path"],
+                    "required": [""],
                 },
             },
         },
@@ -1566,7 +1566,7 @@ async def get_openai_response(question: str, file_path: Optional[str] = None) ->
                     )
                 elif function_name == "analyze_apache_logs":
                     answer = await analyze_apache_logs(
-                        file_path=function_args.get("file_path"),
+                        url=function_args.get("url"),
                         section_path=function_args.get("section_path"),
                         day_of_week=function_args.get("day_of_week"),
                         start_hour=function_args.get("start_hour"),

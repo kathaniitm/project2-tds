@@ -3418,34 +3418,38 @@ async def count_unique_students(file_path: str) -> str:
 import re
 from datetime import datetime, timedelta
 
-##not working
-# def analyze_apache_logs(
-#     file_path,
-#     section_path=None,
-#     day_of_week=None,
-#     start_hour=None,
-#     end_hour=None,
-#     request_method=None,
-#     status_range=(200, 299),
-#     timezone_offset=None,
-# ):
+# async def analyze_apache_logs(
+#     file_path: str,
+#     section_path: str = None,
+#     day_of_week: str = None,
+#     start_hour: int = None,
+#     end_hour: int = None,
+#     request_method: str = None,
+#     status_range: tuple = (200, 300),
+#     timezone_offset: str = None
+# ) -> int:
 #     """
-#     Analyze Apache log files to count requests matching specific criteria.
+#     Reads an Apache log file and returns the count of requests that match the given filters.
 
-#     Expects log entries like:
-#     40.77.167.48 - - [30/Apr/2024:07:12:09 -0500] "GET /telugu/Manchi_Manasuku_Manchi_Rojulu HTTP/1.1" 200 7416 "-" "UserAgent" host ip
+#     Parameters:
+#       file_path (str): Path to the log file.
+#       section_path (str, optional): A URL substring to filter requests (e.g., '/telugump3/').
+#       day_of_week (str, optional): Day to filter by (e.g., 'Tuesday').
+#       start_hour (int, optional): Starting hour (inclusive) for the time window.
+#       end_hour (int, optional): Ending hour (exclusive) for the time window.
+#       request_method (str, optional): HTTP method to filter by (e.g., 'GET').
+#       status_range (tuple, optional): A tuple (min_status, max_status) for HTTP status codes.
+#                                       The filter uses: min_status <= status < max_status.
+#       timezone_offset (str, optional): Target timezone offset in format '+0000' or '-0500'.
 
-#     Filters:
-#       - section_path: URL substring (e.g., '/telugu/')
-#       - day_of_week: (e.g., 'Monday')
-#       - start_hour, end_hour: Time window (24-hour format)
-#       - request_method: HTTP method (e.g., 'GET')
-#       - status_range: Tuple (min, max) for HTTP status codes
-#       - timezone_offset: Target timezone (e.g., '+0000' or '-0500')
+#     Returns:
+#       int: The number of log entries matching all criteria.
 #     """
 
-#     # Map day names to weekday numbers
-#     day_name_to_num = {
+#     # Mapping for day of week
+#     print("shisdi")
+#     file_path = "app/utils/s-anand-net-May-2024.txt"
+#     day_map = {
 #         "monday": 0,
 #         "tuesday": 1,
 #         "wednesday": 2,
@@ -3454,99 +3458,93 @@ from datetime import datetime, timedelta
 #         "saturday": 5,
 #         "sunday": 6,
 #     }
-#     if day_of_week:
-#         day_of_week = day_of_week.lower()
-#         if day_of_week not in day_name_to_num:
-#             return f"Invalid day of week: {day_of_week}"
 
-#     # Regex to extract IP, timestamp, HTTP method, URL, and status code.
-#     log_pattern = r'(\S+) \S+ \S+ \[([^\]]+)\] "(\S+) (\S+) \S+" (\d+)'
+#     # Regular expression to parse the log line.
+#     log_pattern = re.compile(
+#         r'(?P<ip>\S+)\s+'                          # IP
+#         r'(?P<remote_logname>\S+)\s+'              # Remote logname
+#         r'(?P<remote_user>\S+)\s+'                 # Remote user
+#         r'\[(?P<time>[^\]]+)\]\s+'                 # Time (inside [])
+#         r'"(?P<request>[^"]+)"\s+'                 # Request (inside quotes)
+#         r'(?P<status>\d{3})\s+'                    # Status code
+#         r'(?P<size>\S+)\s+'                        # Size
+#         r'"(?P<referer>[^"]*)"\s+'                 # Referer (inside quotes)
+#         r'"(?P<user_agent>(?:\\.|[^"\\])*)"\s+'     # User agent (handles escaped quotes)
+#         r'(?P<vhost>\S+)\s+'                       # Vhost
+#         r'(?P<server>\S+)'                         # Server
+#     )
 
-#     matching_requests = 0
-#     total_requests = 0
-#     parsing_errors = 0
+#     # Helper function: Convert timezone offset string (e.g., '+0530') to minutes.
+#     def parse_offset(offset_str: str) -> int:
+#         sign = 1 if offset_str[0] == '+' else -1
+#         hours = int(offset_str[1:3])
+#         minutes = int(offset_str[3:5])
+#         return sign * (hours * 60 + minutes)
 
-#     # Choose file open function based on file type (plain text or gzipped)
-#     open_func = open
-#     mode = "r"
-#     if file_path.endswith(".gz"):
-#         import gzip
-#         open_func = gzip.open
-#         mode = "rt"
-
-#     with open_func(file_path, mode, encoding="utf-8", errors="replace") as f:
+#     count = 0
+#     with open(file_path, "r", encoding="utf-8", errors="replace") as f:
 #         for line in f:
-#             total_requests += 1
-#             m = re.match(log_pattern, line)
-#             if not m:
-#                 parsing_errors += 1
+#             match = log_pattern.match(line)
+#             if not match:
 #                 continue
 
-#             ip, time_str, method, url, status = m.groups()
+#             data = match.groupdict()
 
-#             # Parse the time string (example: "30/Apr/2024:07:12:09 -0500")
+#             # Parse the time field, e.g. "30/Apr/2024:07:12:09 -0500"
 #             try:
-#                 dt_str, tz_str = time_str.split(" ")
-#                 log_date = datetime.strptime(dt_str, "%d/%b/%Y:%H:%M:%S")
+#                 dt = datetime.strptime(data["time"], "%d/%b/%Y:%H:%M:%S %z")
 #             except Exception:
-#                 parsing_errors += 1
 #                 continue
 
-#             # Adjust timezone if needed
-#             if timezone_offset and timezone_offset != tz_str:
-#                 # Convert timezone strings to minutes offset
-#                 log_tz_sign = 1 if tz_str[0] == "+" else -1
-#                 log_tz_offset = log_tz_sign * (int(tz_str[1:3]) * 60 + int(tz_str[3:5]))
-#                 target_tz_sign = 1 if timezone_offset[0] == "+" else -1
-#                 target_tz_offset = target_tz_sign * (int(timezone_offset[1:3]) * 60 + int(timezone_offset[3:5]))
-#                 tz_diff = target_tz_offset - log_tz_offset
-#                 log_date = log_date + timedelta(minutes=tz_diff)
+#             # Adjust timezone if a target timezone_offset is provided.
+#             if timezone_offset:
+#                 current_offset = parse_offset(dt.strftime("%z"))
+#                 target_offset = parse_offset(timezone_offset)
+#                 if current_offset != target_offset:
+#                     diff_minutes = target_offset - current_offset
+#                     dt = dt + timedelta(minutes=diff_minutes)
 
-#             # Apply filters
+#             # Filter by day_of_week, if provided.
+#             if day_of_week:
+#                 day_key = day_of_week.lower()
+#                 if day_key in day_map and dt.weekday() != day_map[day_key]:
+#                     continue
 
-#             # Day of week filter
-#             if day_of_week and log_date.weekday() != day_name_to_num[day_of_week]:
+#             # Filter by time window (start_hour and end_hour), if provided.
+#             if start_hour is not None and dt.hour < start_hour:
+#                 continue
+#             if end_hour is not None and dt.hour >= end_hour:
 #                 continue
 
-#             # Hour range filter
-#             if start_hour is not None and log_date.hour < start_hour:
+#             # Parse the request field, expected format "METHOD URL PROTOCOL".
+#             request_parts = data["request"].split()
+#             if len(request_parts) < 2:
 #                 continue
-#             if end_hour is not None and log_date.hour >= end_hour:
-#                 continue
+#             method, url = request_parts[0], request_parts[1]
 
-#             # HTTP method filter
+#             # Filter by request method.
 #             if request_method and method.upper() != request_method.upper():
 #                 continue
 
-#             # URL section filter
+#             # Filter by section_path (URL must contain this substring).
 #             if section_path and section_path not in url:
 #                 continue
 
-#             # HTTP status code filter
+#             # Parse and filter by status code.
 #             try:
-#                 status_code = int(status)
+#                 status_code = int(data["status"])
 #             except Exception:
-#                 parsing_errors += 1
+#                 continue
+#             if status_range and not (status_range[0] <= status_code < status_range[1]):
 #                 continue
 
-#             if status_code < status_range[0] or status_code > status_range[1]:
-#                 continue
+#             count += 1
 
-#             matching_requests += 1
-
-#     result = (
-#         f"Apache Log Analysis Results\n"
-#         f"-----------------------------\n"
-#         f"Total Log Entries: {total_requests}\n"
-#         f"Parsing Errors: {parsing_errors}\n"
-#         f"Matching Requests: {matching_requests}\n"
-#         f"Success Rate: {((total_requests - parsing_errors) / total_requests * 100) if total_requests > 0 else 0:.2f}%"
-#     )
-#     return result
+#     return count
 
 
 async def analyze_apache_logs(
-    file_path: str,
+    url: str,
     section_path: str = None,
     day_of_week: str = None,
     start_hour: int = None,
@@ -3555,27 +3553,37 @@ async def analyze_apache_logs(
     status_range: tuple = (200, 300),
     timezone_offset: str = None
 ) -> int:
-    """
-    Reads an Apache log file and returns the count of requests that match the given filters.
+        # Extract the file ID from the Google Drive URL.
+    drive_url = "https://drive.google.com/file/d/1qvGo4NC5SzEWV6939_Ef890Tjv4O7LzY/view?usp=sharing"
+    file_id_match = re.search(r'/d/([a-zA-Z0-9_-]+)', drive_url)
+    if not file_id_match:
+        raise ValueError("Could not extract file ID from the provided Drive URL.")
+    file_id = file_id_match.group(1)
+    
+    # Define the base download URL.
+    download_url = "https://docs.google.com/uc?export=download"
+    
+    # Create a session and initiate the download.
+    session = requests.Session()
+    response = session.get(download_url, params={'id': file_id}, stream=True)
+    
+    # Check for confirmation token (required for large files).
+    token = None
+    for key, value in response.cookies.items():
+        if key.startswith('download_warning'):
+            token = value
+            break
+    if token:
+        response = session.get(download_url, params={'id': file_id, 'confirm': token}, stream=True)
+    
+    # Write the content to a temporary file to avoid memory issues.
+    with tempfile.NamedTemporaryFile(delete=False, mode="wb") as tmp_file:
+        for chunk in response.iter_content(chunk_size=32768):
+            if chunk:
+                tmp_file.write(chunk)
+        tmp_file_path = tmp_file.name
 
-    Parameters:
-      file_path (str): Path to the log file.
-      section_path (str, optional): A URL substring to filter requests (e.g., '/telugump3/').
-      day_of_week (str, optional): Day to filter by (e.g., 'Tuesday').
-      start_hour (int, optional): Starting hour (inclusive) for the time window.
-      end_hour (int, optional): Ending hour (exclusive) for the time window.
-      request_method (str, optional): HTTP method to filter by (e.g., 'GET').
-      status_range (tuple, optional): A tuple (min_status, max_status) for HTTP status codes.
-                                      The filter uses: min_status <= status < max_status.
-      timezone_offset (str, optional): Target timezone offset in format '+0000' or '-0500'.
-
-    Returns:
-      int: The number of log entries matching all criteria.
-    """
-
-    # Mapping for day of week
-    print("shisdi")
-    file_path = "app/utils/s-anand-net-May-2024.txt"
+    # Mapping for days of the week.
     day_map = {
         "monday": 0,
         "tuesday": 1,
@@ -3585,45 +3593,46 @@ async def analyze_apache_logs(
         "saturday": 5,
         "sunday": 6,
     }
-
-    # Regular expression to parse the log line.
+    
+    # Regular expression to parse each log line.
     log_pattern = re.compile(
-        r'(?P<ip>\S+)\s+'                          # IP
-        r'(?P<remote_logname>\S+)\s+'              # Remote logname
-        r'(?P<remote_user>\S+)\s+'                 # Remote user
-        r'\[(?P<time>[^\]]+)\]\s+'                 # Time (inside [])
-        r'"(?P<request>[^"]+)"\s+'                 # Request (inside quotes)
-        r'(?P<status>\d{3})\s+'                    # Status code
-        r'(?P<size>\S+)\s+'                        # Size
-        r'"(?P<referer>[^"]*)"\s+'                 # Referer (inside quotes)
-        r'"(?P<user_agent>(?:\\.|[^"\\])*)"\s+'     # User agent (handles escaped quotes)
-        r'(?P<vhost>\S+)\s+'                       # Vhost
-        r'(?P<server>\S+)'                         # Server
+        r'(?P<ip>\S+)\s+'
+        r'(?P<remote_logname>\S+)\s+'
+        r'(?P<remote_user>\S+)\s+'
+        r'\[(?P<time>[^\]]+)\]\s+'
+        r'"(?P<request>[^"]+)"\s+'
+        r'(?P<status>\d{3})\s+'
+        r'(?P<size>\S+)\s+'
+        r'"(?P<referer>[^"]*)"\s+'
+        r'"(?P<user_agent>(?:\\.|[^"\\])*)"\s+'
+        r'(?P<vhost>\S+)\s+'
+        r'(?P<server>\S+)'
     )
-
-    # Helper function: Convert timezone offset string (e.g., '+0530') to minutes.
+    
+    # Helper function: Convert timezone offset string to minutes.
     def parse_offset(offset_str: str) -> int:
         sign = 1 if offset_str[0] == '+' else -1
         hours = int(offset_str[1:3])
         minutes = int(offset_str[3:5])
         return sign * (hours * 60 + minutes)
-
+    
     count = 0
-    with open(file_path, "r", encoding="utf-8", errors="replace") as f:
+    # Open and process the temporary file line by line.
+    with open(tmp_file_path, "r", encoding="utf-8", errors="replace") as f:
         for line in f:
+            if not line.strip():
+                continue
             match = log_pattern.match(line)
             if not match:
                 continue
 
             data = match.groupdict()
-
-            # Parse the time field, e.g. "30/Apr/2024:07:12:09 -0500"
             try:
                 dt = datetime.strptime(data["time"], "%d/%b/%Y:%H:%M:%S %z")
             except Exception:
                 continue
 
-            # Adjust timezone if a target timezone_offset is provided.
+            # Adjust timezone if needed.
             if timezone_offset:
                 current_offset = parse_offset(dt.strftime("%z"))
                 target_offset = parse_offset(timezone_offset)
@@ -3631,33 +3640,33 @@ async def analyze_apache_logs(
                     diff_minutes = target_offset - current_offset
                     dt = dt + timedelta(minutes=diff_minutes)
 
-            # Filter by day_of_week, if provided.
+            # Filter by day of week.
             if day_of_week:
                 day_key = day_of_week.lower()
                 if day_key in day_map and dt.weekday() != day_map[day_key]:
                     continue
 
-            # Filter by time window (start_hour and end_hour), if provided.
+            # Filter by hour range.
             if start_hour is not None and dt.hour < start_hour:
                 continue
             if end_hour is not None and dt.hour >= end_hour:
                 continue
 
-            # Parse the request field, expected format "METHOD URL PROTOCOL".
+            # Parse the request field (expecting "METHOD URL PROTOCOL").
             request_parts = data["request"].split()
             if len(request_parts) < 2:
                 continue
-            method, url = request_parts[0], request_parts[1]
+            method, url_part = request_parts[0], request_parts[1]
 
             # Filter by request method.
             if request_method and method.upper() != request_method.upper():
                 continue
 
-            # Filter by section_path (URL must contain this substring).
-            if section_path and section_path not in url:
+            # Filter by section_path substring.
+            if section_path and section_path not in url_part:
                 continue
 
-            # Parse and filter by status code.
+            # Check HTTP status code.
             try:
                 status_code = int(data["status"])
             except Exception:
@@ -3669,6 +3678,7 @@ async def analyze_apache_logs(
 
     return count
 
+
 async def analyze_bandwidth_by_ip(
     file_path: str,
     section_path: str = None,
@@ -3676,11 +3686,11 @@ async def analyze_bandwidth_by_ip(
     timezone_offset: str = None,
 ) -> str:
     """
-    Analyzes an Apache log file to determine, for a given date and URL section,
-    the total bytes downloaded by the top IP address (by volume of downloads).
+    Downloads an Apache log file from a Google Drive URL, then analyzes it to determine,
+    for a given date and URL section, the total bytes downloaded by the top IP address.
     
     Parameters:
-      file_path (str): Path to the log file.
+      drive_url (str): Google Drive sharing URL.
       section_path (str, optional): A substring that must be present in the URL (e.g., "malayalammp3/").
       specific_date (str, optional): Date in "YYYY-MM-DD" format to filter requests.
       timezone_offset (str, optional): Target timezone offset (e.g., "-0500").
@@ -3689,9 +3699,33 @@ async def analyze_bandwidth_by_ip(
       str: A string representing the total number of bytes downloaded by the top IP address.
            If no matching requests are found, returns an appropriate message.
     """
+    # --- Step 1: Extract file ID and download from Google Drive ---
+    drive_url = "https://drive.google.com/file/d/1qvGo4NC5SzEWV6939_Ef890Tjv4O7LzY/view?usp=sharing"
+    file_id_match = re.search(r'/d/([a-zA-Z0-9_-]+)', drive_url)
+    if not file_id_match:
+        raise ValueError("Could not extract file ID from the provided Drive URL.")
+    file_id = file_id_match.group(1)
     
-    # Regular expression to parse the log line.
-    file_path = "app/utils/s-anand-net-May-2024.txt"
+    download_url = "https://docs.google.com/uc?export=download"
+    session = requests.Session()
+    
+    response = session.get(download_url, params={'id': file_id}, stream=True)
+    token = None
+    for key, value in response.cookies.items():
+        if key.startswith('download_warning'):
+            token = value
+            break
+    if token:
+        response = session.get(download_url, params={'id': file_id, 'confirm': token}, stream=True)
+    
+    with tempfile.NamedTemporaryFile(delete=False, mode="wb") as tmp_file:
+        for chunk in response.iter_content(chunk_size=32768):
+            if chunk:
+                tmp_file.write(chunk)
+        tmp_file_path = tmp_file.name
+
+    # --- Step 2: Set up filters and log parsing ---
+    # Regular expression to parse each log line.
     log_pattern = re.compile(
         r'(?P<ip>\S+)\s+'                          # IP
         r'(?P<remote_logname>\S+)\s+'              # Remote logname
@@ -3705,15 +3739,15 @@ async def analyze_bandwidth_by_ip(
         r'(?P<vhost>\S+)\s+'                       # Vhost
         r'(?P<server>\S+)'                         # Server
     )
-    
-    # Helper function: parse a timezone offset string (e.g., "-0500") to minutes.
+
+    # Helper function to convert timezone offset string to minutes.
     def parse_offset(offset_str: str) -> int:
         sign = 1 if offset_str[0] == '+' else -1
         hours = int(offset_str[1:3])
         minutes = int(offset_str[3:5])
         return sign * (hours * 60 + minutes)
-    
-    # Parse the specific_date if provided.
+
+    # Parse specific_date into a datetime.date object if provided.
     target_date = None
     if specific_date:
         try:
@@ -3721,9 +3755,9 @@ async def analyze_bandwidth_by_ip(
         except Exception:
             raise ValueError("specific_date must be in 'YYYY-MM-DD' format.")
     
+    # --- Step 3: Process the downloaded log file ---
     ip_bandwidth = {}
-    
-    with open(file_path, "r", encoding="utf-8", errors="replace") as f:
+    with open(tmp_file_path, "r", encoding="utf-8", errors="replace") as f:
         for line in f:
             match = log_pattern.match(line)
             if not match:
@@ -3758,7 +3792,7 @@ async def analyze_bandwidth_by_ip(
             if section_path and section_path not in url:
                 continue
             
-            # Parse the size field. If the size is not a digit (e.g., "-"), treat it as 0.
+            # Parse the size field. If not a digit (e.g., "-"), treat it as 0.
             try:
                 size = int(data["size"]) if data["size"].isdigit() else 0
             except Exception:
@@ -3770,10 +3804,9 @@ async def analyze_bandwidth_by_ip(
     if not ip_bandwidth:
         return "No matching requests found."
     
-    # Find the IP address with the maximum total downloaded bytes.
+    # --- Step 4: Determine the IP with maximum bandwidth ---
     top_ip, max_bytes = max(ip_bandwidth.items(), key=lambda item: item[1])
     return f"{max_bytes}"
-
 async def parse_partial_json_sales(file_path: str) -> str:
     """
     Parse partial JSON data from a JSONL file and calculate total sales
