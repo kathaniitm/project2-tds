@@ -26,6 +26,9 @@ from bs4 import BeautifulSoup
 import colorsys
 from typing import Optional, Dict, Any, List
 from datetime import datetime, timedelta
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # GitHub credentials should be set in your environment variables
 GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN") or "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"
