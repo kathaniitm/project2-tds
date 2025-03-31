@@ -34,6 +34,7 @@ VERCEL_TOKEN = os.environ.get("VERCEL_TOKEN") or "lwfxggCrmOmr3mR78FlvC7au"
 AIPROXY_TOKEN = "eyJhbGciOiJIUzI1NiJ9.eyJlbWFpbCI6IjI0ZjEwMDIzOTBAZHMuc3R1ZHkuaWl0bS5hYy5pbiJ9.5j9400SGrtncpZLZmrML6BuqlhZw18Oa9Q7q0PQO32E"
 AIPROXY_URL_EMBED = "https://aiproxy.sanand.workers.dev/openai/v1/embeddings"
 AIPROXY_URL_CHAT = "https://aiproxy.sanand.workers.dev/openai/v1/chat/completions"
+BASE_URL = os.getenv("BASE_URL", "http://127.0.0.1:8000")
 
 
 
@@ -1204,7 +1205,7 @@ def generate_markdown_documentation(topic: str, elements: Optional[List[str]] = 
     
     return markdown_template
 
-SERVER_HOST = "http://localhost:8000/uploads"
+SERVER_HOST = f"{BASE_URL}/uploads"
 
 ##done
 async def compress_image(file_path: str, target_size: int = 1500) -> str:
@@ -1516,7 +1517,7 @@ async def create_docker_image(tag: str, dockerfile_content: Optional[str] = None
 async def filter_students_by_class(file_path: str) -> str:
     destination = "students_marks.csv"
     shutil.copyfile(file_path, destination)
-    return "http://127.0.0.1:8000/students"
+    return f"{BASE_URL}/students"
 
 ##notdone
 async def setup_llamafile_with_ngrok(
@@ -2428,7 +2429,7 @@ def most_similar(embeddings):
     return most_similar_pair
 """
 
-        return "http://127.0.0.1:8000/similarity"
+        return f"{BASE_URL}/similarity"
     except Exception as e:
         return f"Error finding most similar phrases: {str(e)}"
 
@@ -2595,7 +2596,7 @@ async def compute_similarity(request: SimilarityRequest):
 {fastapi_code}
 ```
 ## API Endpoint
-http://127.0.0.1:8000/similarity
+{BASE_URL}/similarity
 
 ## Example Request
 {{
@@ -2754,10 +2755,10 @@ async def execute_query(q: str):
 {fastapi_code}
 ```
 ## API Endpoint
-http://127.0.0.1:8000/execute
+{BASE_URL}/execute
 
 ## Example Request
-GET http://127.0.0.1:8000/execute?q={query.replace(" ", "%20")}
+GET {BASE_URL}/execute?q={query.replace(" ", "%20")}
 
 ## Example Response
 {json.dumps(response, indent=2)}

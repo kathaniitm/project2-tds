@@ -123,6 +123,9 @@ async def get_students(class_: List[str] = Query(default=[], alias="class")):
 def welcome():
     return {"message": "Welcome to the FastAPI app!"}
 
+@app.get("/")
+def intropage():
+    return {"message": "Welcome to the FastAPI app!"}
 
 
 class SearchRequest(BaseModel):
