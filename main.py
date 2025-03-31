@@ -12,6 +12,12 @@ from pydantic import BaseModel
 # Import the functions you want to test directly
 from app.utils.functions import *
 
+uploads_dir = os.path.join(os.getcwd(), "uploads")
+if not os.path.exists(uploads_dir):
+    os.makedirs(uploads_dir, exist_ok=True)
+    print(f"Created uploads directory at: {uploads_dir}")
+
+
 app = FastAPI(title="IITM Assignment API")
 
 
@@ -161,6 +167,8 @@ async def get_similar_documents(request: SearchRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 # Mount the "uploads" directory so that files can be served at /uploads/*
+ 
+
 app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 
 
@@ -168,5 +176,6 @@ app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 
 if __name__ == "__main__":
     import uvicorn
+      
 
-    uvicorn.run("app.main:app", host="0.0.0.0", port=8000, reload=True)
+    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
